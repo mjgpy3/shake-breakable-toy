@@ -9,24 +9,33 @@ import Data.String.Utils (replace)
 main :: IO ()
 main = do
   shakeArgs shakeOptions{shakeFiles="_build"} $ do
-    want ["_build/docker-compose.yml"]
+    want ["local-from-scratch"]
 
     phony "build-node-project" $ do
+      alwaysRerun
       let dir = "../node-project"
       need [dir </> "Dockerfile"]
-      cmd "docker build -t" ["foo/image", dir]
+      imageLabel <- getEnvWithDefault "latest" "IMAGE_LABEL"
+      putNormal imageLabel
+      cmd "docker build -t" ["foo/image:" ++ imageLabel, dir]
 
     "_build/port" %> \out -> do
       writeFile' out "1234"
 
     "_build/docker-compose.yml" %> \out -> do
       need ["build-node-project", "_build/port"]
-      dockerCompose <- readFile' "_templates/docker-compose.yml"
-      let finalDockerCompose = replace "{{node-image-name}}" "foo/image" dockerCompose
-      writeFile' out finalDockerCompose
+      apiPort <- readFile' "_build/port"
+      imageLabel <- getEnvWithDefault "latest" "IMAGE_LABEL"
+      template "docker-compose.yml" out [
+          ("{{image-label}}", imageLabel)
+        , ("{{node-port}}", apiPort)
+        ]
 
-    phony "run-locally" $ do
-      need ["_build/port", "_build/docker-compose.yml"]
-      port <- readFile' "_build/port"
-      putNormal port
-      cmd "echo" [port]
+    phony "local-from-scratch" $ do
+      need ["_build/docker-compose.yml"]
+      cmd "docker-compose -f" ["_build/docker-compose.yml", "up", "-d"]
+
+template :: String -> String -> [(String, String)] -> Action ()
+template templateName outputPath replacements = do
+  rawText <- readFile' $ "_templates" </> templateName
+  writeFile' outputPath $ foldr (uncurry replace) rawText replacements

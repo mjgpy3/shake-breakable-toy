@@ -1,2 +1,4 @@
 node-stuff:
-  image: {{node-image-name}}
+  image: foo/image:{{image-label}}
+  ports:
+    - "{{node-port}}:3000"
