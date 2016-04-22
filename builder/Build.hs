@@ -15,7 +15,6 @@ main = do
       let dir = "../node-project"
       need [dir </> "Dockerfile"]
       imageLabel <- readImageLabel
-      putNormal imageLabel
       cmd "docker build -t" ["foo/image:" ++ imageLabel, dir]
 
     "_build/port" %> \out -> do
