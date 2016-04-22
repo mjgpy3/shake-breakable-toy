@@ -1,7 +1,6 @@
 FROM node:4.4.3-slim
 
 COPY package.json .
-
 RUN npm install --silent
 
 COPY ./src /src

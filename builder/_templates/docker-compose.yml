@@ -1,0 +1,2 @@
+node-stuff:
+  image: {{node-image-name}}
