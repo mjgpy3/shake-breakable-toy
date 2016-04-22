@@ -33,7 +33,8 @@ main = do
 
     phony "local-from-scratch" $ do
       need ["_build/docker-compose.yml"]
-      cmd "docker-compose -f" ["_build/docker-compose.yml", "up", "-d"]
+      imageLabel <- getEnvWithDefault "latest" "IMAGE_LABEL"
+      cmd "docker-compose -f" ["_build/docker-compose.yml", "-p", imageLabel,  "up", "-d"]
 
 template :: String -> String -> [(String, String)] -> Action ()
 template templateName outputPath replacements = do
