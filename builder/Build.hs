@@ -12,10 +12,9 @@ main = do
     want ["local-from-scratch"]
 
     phony "build-node-project" $ do
-      alwaysRerun
       let dir = "../node-project"
       need [dir </> "Dockerfile"]
-      imageLabel <- getEnvWithDefault "latest" "IMAGE_LABEL"
+      imageLabel <- readImageLabel
       putNormal imageLabel
       cmd "docker build -t" ["foo/image:" ++ imageLabel, dir]
 
@@ -25,7 +24,7 @@ main = do
     "_build/docker-compose.yml" %> \out -> do
       need ["build-node-project", "_build/port"]
       apiPort <- readFile' "_build/port"
-      imageLabel <- getEnvWithDefault "latest" "IMAGE_LABEL"
+      imageLabel <- readImageLabel
       template "docker-compose.yml" out [
           ("{{image-label}}", imageLabel)
         , ("{{node-port}}", apiPort)
@@ -33,10 +32,13 @@ main = do
 
     phony "local-from-scratch" $ do
       need ["_build/docker-compose.yml"]
-      imageLabel <- getEnvWithDefault "latest" "IMAGE_LABEL"
+      imageLabel <- readImageLabel
       cmd "docker-compose -f" ["_build/docker-compose.yml", "-p", imageLabel,  "up", "-d"]
 
 template :: String -> String -> [(String, String)] -> Action ()
 template templateName outputPath replacements = do
   rawText <- readFile' $ "_templates" </> templateName
   writeFile' outputPath $ foldr (uncurry replace) rawText replacements
+
+readImageLabel :: Action String
+readImageLabel = getEnvWithDefault "latest" "IMAGE_LABEL"
